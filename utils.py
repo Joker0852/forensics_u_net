@@ -3,23 +3,6 @@ import numpy as np
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.modules.utils import _triple, _pair, _single
-
-# 把全局池化改成方差的自注意力模块
-class SE2Layer(nn.Module):
-    def __init__(self, channel, reduction=16):
-        super(SE2Layer, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // reduction, channel, bias=False),
-            nn.Sigmoid()
-        )
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = torch.std(x,dim=[2,3],keepdim=True).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
 
 # softpool
 class soft_pool(nn.Module):
@@ -59,19 +42,6 @@ def tensor_to_np1(tensor):
     img = img.detach().cpu().numpy().transpose((0, 2, 3, 1))
     return img
 
-# 我们自己定义的0.5矩阵，该矩阵的目的是为了骗过判别器，以此提高生成器的能力，从而经过对抗，也提高判别器的能力
-def half_one_matrix():
-    label_half = torch.ones((8, 256, 256)) * 0.5
-    # label_half = label_half
-    return label_half
-
-def zero_label():
-    zero_lab = torch.zeros((8, 2, 256, 256))
-    return zero_lab
-
-def one_label():
-    label = torch.ones((8,2,256,256))
-    return label
 
 # 调整学习率
 def adjust_learnig_rate(opt, optimizer, epoch):

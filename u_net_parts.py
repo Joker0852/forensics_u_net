@@ -34,15 +34,22 @@ class U_down(nn.Module):
         return x
 
 class U_up(nn.Module):
-    def __init__(self, in_ch, out_ch, scale_factor=2):
+    def __init__(self, in_ch, out_ch):
         super(U_up, self).__init__()
-        self.up = nn.Upsample(scale_factor=scale_factor, mode='nearest')
-        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1)
+        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv = U_double_conv(in_ch, out_ch)
 
-    def forward(self, x):
-        out = self.up(x)
-        out = self.conv(out)
-        return out
+    def forward(self, x1, x2):
+        x1 = self.up(x1)
+        diffX = x2.size()[2] - x1.size()[2]
+        diffY = x2.size()[3] - x1.size()[3]
+
+        x1 = F.pad(x1, (diffY, 0,
+                        diffX, 0))
+        x = torch.cat([x2, x1], dim=1)
+
+        x = self.conv(x)
+        return x
 
 class inconv(nn.Module):
     def __init__(self, in_ch, out_ch):
