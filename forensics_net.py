@@ -1,5 +1,5 @@
 import torch.nn as nn
-from u_net_parts import U_down,U_up,U_double_conv,inconv
+from u_net_parts import U_down,U_up,U_double_conv,inconv,outconv
 from deform_conv import DeformConv2D
 from SE_block import SE2Layer
 from ASPP_module import ASPP
