@@ -5,22 +5,6 @@ import torch.nn.functional as F
 
 # ~~~~~~~~~~ U-Net ~~~~~~~~~~
 
-class U_double_conv(nn.Module):
-    def __init__(self, in_ch, out_ch):
-        super(U_double_conv, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_ch, out_ch, 3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
 class U_down(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(U_down, self).__init__()
@@ -59,3 +43,40 @@ class inconv(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         return x
+
+class outconv(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super(outconv, self).__init__()
+        self.conv = nn.Conv2d(in_ch, out_ch, 1)
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+class U_double_conv(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super(U_double_conv, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+# 和上边的上采样有所不同，这里就用了一次卷积，上边那个用了两次卷积
+class better_upsampling(nn.Module):
+    def __init__(self, in_ch, out_ch, scale_factor=2):
+        super(better_upsampling, self).__init__()
+        self.up = nn.Upsample(scale_factor=scale_factor, mode='nearest')
+        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, x):
+        out = self.up(x)
+        out = self.conv(out)
+        return out
