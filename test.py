@@ -6,15 +6,11 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 from compute_iou import my_compute_IoU
-from Discrimintor_Net import *
 from mydataloader import Mydataload
 from torch.utils.data import DataLoader
-from Discriminator_D import myresnet50
-# from deeplab import myresnet50_1
+from forensics_net import forensics_net
 
 parser = argparse.ArgumentParser(description='inpainting and forensics training')
-parser.add_argument('--origin_path', type=str,
-                    default='/media/work/Joker/datasets/test_data/origin_img/circle/circle_5/', help='testing dataset')
 parser.add_argument('--img_path', type=str,
                     default='/media/work/Joker/datasets/generative-inpainting-dataset/inpainting_test/circle/circle_5/',
                     help='testing dataset')
@@ -23,7 +19,7 @@ parser.add_argument('--label_path', type=str,
                     help='testing label dataset')
 parser.add_argument('--workers', type=int, default=0, help='number of data loading workers')
 parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
-parser.add_argument('--netD', default='checkpoints/forensics_se_iou/forensics_50.pth',                    help="path to netD weight")  # 加载判成器
+parser.add_argument('--model_file', default='checkpoints/forensics_se_iou/forensics_50.pth',help="path to netD weight") 
 parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
 parser.add_argument('--comparison_dir', type=str, default='result_dir/pre_and_result/', help='save the runing result')
 parser.add_argument('--pre_dir', type=str, default='result_dir/prediction/', help='save the prediction result')
@@ -61,10 +57,9 @@ def main(opt):
     dataset_size = len(test_dataset)
     print('testing image dataset size = %d' % dataset_size)
 
-    # model_D = Forensics_Base_ResNet50().to(device)
-    model_D = myresnet50().to(device)
-    model_D.load_state_dict(torch.load(opt.netD))  # 加载取证网络权重
-    model_D.eval()
+    model = forensics_net.to(device)
+    model.load_state_dict(torch.load(opt.netD)) 
+    model.eval()
 
     tbar = tqdm(test_dataset)
     print('\n Start testing...')
@@ -79,7 +74,7 @@ def main(opt):
         image = image.to(device)
         label = label.to(device)
 
-        output = model_D(image)
+        output = model(image)
         output = torch.softmax(output, 1)
 
         for p in range(batch):

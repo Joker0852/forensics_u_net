@@ -1,8 +1,8 @@
 import torch.nn as nn
-from u_net_parts import U_down,U_up,U_double_conv,inconv,outconv
-from deform_conv import DeformConv2D
 from SE_block import SE2Layer
 from ASPP_module import ASPP 
+from deform_conv import DeformConv2D
+from u_net_parts import U_down,U_up,U_double_conv,inconv,outconv
 
 class forensics_net(nn.Module):
     def __init__(self, n_channels, n_classes):
@@ -27,6 +27,8 @@ class forensics_net(nn.Module):
         self.se2 = SE2Layer(32)
         self.se3 = SE2Layer(64)
         self.se4 = SE2Layer(128)
+        # 金字塔
+        self.aspp = ASPP(256,128)
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -34,9 +36,13 @@ class forensics_net(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
-        x = self.out(x)
-        return x
+        x5 = self.aspp(x5)
+        x6 = self.se4(x4) + x5
+        x7 = self.up2(x6)
+        x7 = self.se3(x3) + x7
+        x8 = self.up3(x7)
+        x8 = self.se2(x2) + x8
+        x9 = self.up4(x1)
+        x9 = self.se1(x1) + x9
+        out = self.out(x9)
+        return out

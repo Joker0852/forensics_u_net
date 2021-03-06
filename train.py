@@ -24,7 +24,7 @@ parser.add_argument('--gpu_ids', type=int, default=0, help='gpu ids:0,1,2 cpu:-1
 parser.add_argument('--seed', type=int, default=1, help='random seeds')
 parser.add_argument('--model_file',type=str,default='checkpoints/',help=' ')
 parser.add_argument('--log_dir', type=str, default='log_dir', help='save the current running log')
-parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
+parser.add_argument('--beta', type=float, default=0.5, help='beta for adam. default=0.5')
 parser.add_argument('--epoch_num', type=int, default=100, help='the number of training')
 parser.add_argument('--cosine_max_value', type=int, default=10,help='the number of interation for training Generator')
 
@@ -54,12 +54,15 @@ def main(opt):
     model = forensics_net()
     # model_D.load_state_dict(torch.load(opt.netD))
     model = model.to(device)
-
+    
+    # 加权的交叉熵损失
     criterion = nn.CrossEntropyLoss(weight=torch.FloatTensor([1.0, 5.0])).to(device)
+    # 标准交叉熵损失
+    criterion0 = nn.CrossEntropyLoss().to(device)
     criterion1 = IOU_loss().to(device)
 
     # 安装优化器
-    opt_model = torch.optim.Adam(model.parameters(), lr=opt.lr,betas=(opt.beta2, 0.999))
+    opt_model = torch.optim.Adam(model.parameters(), lr=opt.lr,betas=(opt.beta, 0.999))
 
     # 调整学习率
     CosineLR_D = torch.optim.lr_scheduler.CosineAnnealingLR(opt_model, T_max=opt.cosine_max_value,eta_min=0)
@@ -85,10 +88,10 @@ def main(opt):
             loss_ce = criterion(out, label)
             # loss_iou = criterion1(out,label_iou)
             # loss = loss_iou + loss_ce
-            opt_model_D.zero_grad()  # 将梯度清零
+            opt_model.zero_grad()
             loss_ce.backward()
             iter_loss1 = loss_ce.item()
-            opt_model_D.step()
+            opt_model.step()
             # CosineLR_D.step()
             if total_iteration % opt.print_freq == 0:
                 print("[ epoch", epoch, "]  loss = ", iter_loss1)
